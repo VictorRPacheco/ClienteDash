@@ -12,6 +12,7 @@ class R2A_Panda(IR2A):
         self.request_time = 0
         self.qi = []
         self.bandwidthShare = []
+        self.downloadTime = []
 
     def handle_xml_request(self, msg):
         self.request_time = time.perf_counter()
@@ -28,18 +29,18 @@ class R2A_Panda(IR2A):
 
     def handle_segment_size_request(self, msg):
         self.request_time = time.perf_counter()
-
-        # get the last throughput measured
-        throughputAferido = (self.throughputs[-1])
+        self.downloadTime.append(time.time())
 
         # Estimate the bandwidth share
         k = 0.14 # Probing convergence rate CONSTANT
         w = 0.3 # Probing additive increase bitrate  CONSTANT
-
+        segmentDownloadTime = self.downloadTime[-1]-self.downloadTime[len(self.downloadTime)-2] # Calculate the time to download one segment
+        throughputAferido = (self.throughputs[-1]) # get the last throughput measured
+        actualInterRequestTime = max(1,segmentDownloadTime) # Calculate the actual inter request time
         if(len(self.bandwidthShare) == 0):
             self.bandwidthShare.append(throughputAferido)
         else:
-            self.bandwidthShare.append(k*(w-max(0,self.bandwidthShare[-1]-throughputAferido+w)))
+            self.bandwidthShare.append((throughputAferido-self.bandwidthShare[-1])/(actualInterRequestTime))
             #self.bandwidthShare.append(k*(w-max(0,self.bandwidthShare[-1]-throughputAferido+w)))
 
         print("throughputAferido>>>",throughputAferido)
