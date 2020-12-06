@@ -34,9 +34,10 @@ class R2A_Panda(IR2A):
         # Estimate the bandwidth share
         k = 0.14 # Probing convergence rate CONSTANT
         w = 0.3 # Probing additive increase bitrate  CONSTANT
-        segmentDownloadTime = self.downloadTime[-1]-self.downloadTime[len(self.downloadTime)-2] # Calculate the time to download one segment
+        segmentDownloadTime = self.downloadTime[-1]-self.downloadTime[len(self.downloadTime)-2] # Calculate the time to download one segment (T~)
         throughputAferido = (self.throughputs[-1]) # get the last throughput measured
-        actualInterRequestTime = max(1,segmentDownloadTime) # Calculate the actual inter request time
+        actualInterRequestTime = max(1,segmentDownloadTime) # Calculate the actual inter request time (T)
+
         if(len(self.bandwidthShare) == 0):
             self.bandwidthShare.append(throughputAferido)
         else:
@@ -47,20 +48,18 @@ class R2A_Panda(IR2A):
         print("bandwidthShare>>>",self.bandwidthShare[-1])
 
         # Smooth out bandwidthShare to produce a filtered version
+        avgBandwithShare = mean(self.bandwidthShare[-2:]) # Calculate the moving average
 
-
-
+        # Quantize the avgBandwithShare to the discrete video bitrate
         selected_qi = self.qi[0]
         for i in self.qi:
-            if self.bandwidthShare[-1] > i:
+            if avgBandwithShare > i:
                 selected_qi = i
 
         print("QI>", self.qi[len(self.qi)-1])
 
-        #print("teste")
-        #print("Tamanho", self.whiteboard.get_playback_history())
-        #buffer_size = self.Player.get_amount_of_video_to_play_without_lock()
-        #print(self.whiteboard.add_playback_buffer_size(self.whiteboard.playback_buffer_size.get_items()))
+        # Schedule the next download request
+
 
         msg.add_quality_id(selected_qi)
         self.send_down(msg)
