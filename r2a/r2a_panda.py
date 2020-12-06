@@ -11,6 +11,7 @@ class R2A_Panda(IR2A):
         self.throughputs = []
         self.request_time = 0
         self.qi = []
+        self.bandwidthShare = []
 
     def handle_xml_request(self, msg):
         self.request_time = time.perf_counter()
@@ -27,15 +28,30 @@ class R2A_Panda(IR2A):
 
     def handle_segment_size_request(self, msg):
         self.request_time = time.perf_counter()
-        #avg = mean(self.throughputs) / 2
-        throughputAferido = self.throughputs[len(self.throughputs)-1]
-        print("throughputAferido >>>> ",throughputAferido)
-        vazao = throughputAferido*0.7
+
+        # get the last throughput measured
+        throughputAferido = (self.throughputs[-1])
+
+        # Estimate the bandwidth share
+        k = 0.14 # Probing convergence rate CONSTANT
+        w = 0.3 # Probing additive increase bitrate  CONSTANT
+
+        if(len(self.bandwidthShare) == 0):
+            self.bandwidthShare.append(throughputAferido)
+        else:
+            self.bandwidthShare.append(k*(w-max(0,self.bandwidthShare[-1]-throughputAferido+w)))
+            #self.bandwidthShare.append(k*(w-max(0,self.bandwidthShare[-1]-throughputAferido+w)))
+
+        print("throughputAferido>>>",throughputAferido)
+        print("bandwidthShare>>>",self.bandwidthShare[-1])
+
+        # Smooth out bandwidthShare to produce a filtered version
+
 
 
         selected_qi = self.qi[0]
         for i in self.qi:
-            if vazao > i:
+            if self.bandwidthShare[-1] > i:
                 selected_qi = i
 
         print("QI>", self.qi[len(self.qi)-1])
