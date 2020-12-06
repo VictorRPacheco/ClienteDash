@@ -13,6 +13,7 @@ class R2A_Panda(IR2A):
         self.qi = []
         self.bandwidthShare = []
         self.downloadTime = []
+        self.targetInterRequestTime = [1]
 
     def handle_xml_request(self, msg):
         self.request_time = time.perf_counter()
@@ -36,7 +37,7 @@ class R2A_Panda(IR2A):
         w = 0.3 # Probing additive increase bitrate  CONSTANT
         segmentDownloadTime = self.downloadTime[-1]-self.downloadTime[len(self.downloadTime)-2] # Calculate the time to download one segment (T~)
         throughputAferido = (self.throughputs[-1]) # get the last throughput measured
-        actualInterRequestTime = max(1,segmentDownloadTime) # Calculate the actual inter request time (T)
+        actualInterRequestTime = max(self.targetInterRequestTime[-1],segmentDownloadTime) # Calculate the actual inter request time (T)
 
         if(len(self.bandwidthShare) == 0):
             self.bandwidthShare.append(throughputAferido)
@@ -48,18 +49,24 @@ class R2A_Panda(IR2A):
         print("bandwidthShare>>>",self.bandwidthShare[-1])
 
         # Smooth out bandwidthShare to produce a filtered version
-        avgBandwithShare = mean(self.bandwidthShare[-2:]) # Calculate the moving average
+        smoothBandwithShare = mean(self.bandwidthShare[-2:]) # Calculate the moving average
 
         # Quantize the avgBandwithShare to the discrete video bitrate
         selected_qi = self.qi[0]
         for i in self.qi:
-            if avgBandwithShare > i:
+            if smoothBandwithShare > i:
                 selected_qi = i
 
         print("QI>", self.qi[len(self.qi)-1])
 
         # Schedule the next download request
+        B = 0.2  # Client buffer convergence rate CONSTANT
+        bufferMin = 5 # Min buffer CONSTANT
 
+        self.targetInterRequestTime.append((selected_qi/smoothBandwithShare)+(B*(usedBuffer-bufferMin)))
+        print("selected_qi>>> ", selected_qi)
+        print("smoothBandwithShare>>> ", smoothBandwithShare)
+        print("targetInterRequestTime>>> ", self.targetInterRequestTime[-1])
 
         msg.add_quality_id(selected_qi)
         self.send_down(msg)
