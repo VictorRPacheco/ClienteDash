@@ -33,15 +33,14 @@ class R2A_Panda(IR2A):
         self.downloadTime.append(time.time())
 
         # Estimate the bandwidth share
-        segmentDownloadTime = self.downloadTime[-1]-self.downloadTime[len(self.downloadTime)-2] # Calculate the time to download one segment (T~)
+        segmentDownloadTime = self.downloadTime[-1]-self.downloadTime[len(self.downloadTime)-2] # Calculate the time to download one segment
         throughputAferido = (self.throughputs[-1]) # get the last throughput measured
-        actualInterRequestTime = max(self.targetInterRequestTime[-1],segmentDownloadTime) # Calculate the actual inter request time (T)
+        actualInterRequestTime = max(self.targetInterRequestTime[-1],segmentDownloadTime) # Calculate the actual inter request time
 
         if(len(self.bandwidthShare) == 0):
             self.bandwidthShare.append(throughputAferido)
         else:
-            self.bandwidthShare.append((throughputAferido-self.bandwidthShare[-1])/(actualInterRequestTime))
-
+            self.bandwidthShare.append(((throughputAferido-self.bandwidthShare[-1])/(actualInterRequestTime)))
 
         # Smooth out bandwidthShare to produce a filtered version
         smoothBandwithShare = mean(self.bandwidthShare[-2:]) # Calculate the moving average
@@ -59,9 +58,16 @@ class R2A_Panda(IR2A):
         # Schedule the next download request
         B = 0.2  # Client buffer convergence rate CONSTANT
         bufferMin = 20 # Min buffer CONSTANT
-        usedBuffer = 17
 
-        self.targetInterRequestTime.append((selected_qi/smoothBandwithShare)+(B*(bufferMin - usedBuffer)))
+        bufferSizeTuple = self.whiteboard.get_playback_buffer_size()
+
+        if(len(bufferSizeTuple)>0):
+            bufferSize = bufferSizeTuple[-1][1]
+        else:
+            bufferSize = 0
+
+
+        self.targetInterRequestTime.append((selected_qi/smoothBandwithShare)+(B*(bufferMin - bufferSize)))
 
         msg.add_quality_id(selected_qi)
         self.send_down(msg)
