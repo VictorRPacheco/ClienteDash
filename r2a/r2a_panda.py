@@ -3,7 +3,18 @@ from player.parser import *
 import time
 from statistics import mean
 
+"""
+This code is a piece of a bigger one, available in https://github.com/VictorRPacheco/ClienteDash
 
+Authors:
+ Theo Henrique Gallo
+ Matheus Nóbrega Duarte
+ Victor Rodrigues Pacheco
+ 
+Special thanks to:
+ Marcos Fagundes Caetano
+
+"""
 class R2A_Panda(IR2A):
 
     def __init__(self, id):
